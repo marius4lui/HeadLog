@@ -66,7 +66,7 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
           final screenHeight = MediaQuery.sizeOf(context).height;
           final bottomInset = MediaQuery.paddingOf(context).bottom;
           final composerHeight = (screenHeight * 0.7).clamp(430.0, 640.0);
-          final collapsedHeight = 96.0;
+          final collapsedHeight = 116.0;
           final activeSheetHeight = _sheetExpanded
               ? composerHeight
               : collapsedHeight;
