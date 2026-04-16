@@ -26,7 +26,7 @@ class HeadLogHomeScreen extends ConsumerStatefulWidget {
 class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
   String _view = 'week';
   DateTime _selectedDate = DateTime.now();
-  bool _sheetExpanded = true;
+  bool _sheetExpanded = false;
   int? _composerIntensity;
   final Set<String> _composerCauses = <String>{};
   final TextEditingController _composerNoteController = TextEditingController();
@@ -255,7 +255,7 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
       _composerIntensity = null;
       _composerCauses.clear();
       _composerNoteController.clear();
-      _sheetExpanded = true;
+      _sheetExpanded = false;
     });
   }
 
@@ -1013,213 +1013,249 @@ class _ComposerSheet extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          4,
-          24,
-          (expanded ? 20 : 8) + bottomInset,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragUpdate: (details) {
-                if (details.delta.dy > 8 && expanded) {
-                  onCollapse();
-                } else if (details.delta.dy < -8 && !expanded) {
-                  onExpand();
-                }
-              },
-              onTap: expanded ? null : onExpand,
-              child: SizedBox(
-                width: double.infinity,
-                height: expanded ? 92 : 74,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    SizedBox(height: expanded ? 8 : 6),
-                    Container(
-                      width: expanded ? 64 : 56,
-                      height: expanded ? 7 : 6,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    SizedBox(height: expanded ? 10 : 6),
-                    Text(
-                      'New Log',
-                      style:
-                          (expanded
-                                  ? theme.textTheme.headlineSmall
-                                  : theme.textTheme.titleMedium)
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    if (!expanded) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        selectedIntensity == null
-                            ? 'Swipe up for details'
-                            : 'Intensity $selectedIntensity/10 selected',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.outline,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentVisible = expanded && constraints.maxHeight > 220;
+
+          return ClipRect(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                0,
+                24,
+                (expanded ? 18 : 8) + bottomInset,
               ),
-            ),
-            if (expanded) const SizedBox(height: 8),
-            if (expanded)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 0.9,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onVerticalDragUpdate: (details) {
+                      if (details.delta.dy > 8 && expanded) {
+                        onCollapse();
+                      } else if (details.delta.dy < -8 && !expanded) {
+                        onExpand();
+                      }
+                    },
+                    onTap: expanded ? null : onExpand,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: expanded ? 68 : 70,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 6),
+                          Container(
+                            width: expanded ? 64 : 56,
+                            height: expanded ? 7 : 6,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.outlineVariant,
+                              borderRadius: BorderRadius.circular(999),
                             ),
-                        itemCount: options.length,
-                        itemBuilder: (context, index) {
-                          final option = options[index];
-                          final selected = selectedIntensity == option.value;
-                          return GestureDetector(
-                            onTap: () => onIntensitySelected(option.value),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 6,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'New Log',
+                            style:
+                                (expanded
+                                        ? theme.textTheme.headlineSmall
+                                        : theme.textTheme.titleMedium)
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          if (!expanded) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              selectedIntensity == null
+                                  ? 'Swipe up for details'
+                                  : 'Intensity $selectedIntensity/10 selected',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                                fontWeight: FontWeight.w700,
                               ),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? theme.colorScheme.onSurface
-                                    : theme.colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(26),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: option.color,
-                                      shape: BoxShape.circle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (contentVisible) const SizedBox(height: 2),
+                  if (contentVisible)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Intensity',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.outline,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.8,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 92,
+                            child: Row(
+                              children: [
+                                for (
+                                  var index = 0;
+                                  index < options.length;
+                                  index++
+                                ) ...[
+                                  if (index > 0) const SizedBox(width: 12),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => onIntensitySelected(
+                                        options[index].value,
+                                      ),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                          horizontal: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              selectedIntensity ==
+                                                  options[index].value
+                                              ? theme.colorScheme.onSurface
+                                              : theme
+                                                    .colorScheme
+                                                    .surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(
+                                            26,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              width: 10,
+                                              height: 10,
+                                              decoration: BoxDecoration(
+                                                color: options[index].color,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              options[index].label,
+                                              textAlign: TextAlign.center,
+                                              style: theme.textTheme.labelMedium
+                                                  ?.copyWith(
+                                                    color:
+                                                        selectedIntensity ==
+                                                            options[index].value
+                                                        ? theme
+                                                              .colorScheme
+                                                              .surface
+                                                        : theme
+                                                              .colorScheme
+                                                              .outline,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 11,
+                                                  ),
+                                              maxLines: 1,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    option.label,
-                                    textAlign: TextAlign.center,
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          color: selected
-                                              ? theme.colorScheme.surface
-                                              : theme.colorScheme.outline,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 11,
-                                        ),
-                                    maxLines: 1,
-                                  ),
                                 ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'Possible cause',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.outline,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.8,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              for (final cause in _causeOptions)
+                                _CauseChip(
+                                  option: cause,
+                                  selected: selectedCauses.contains(cause.id),
+                                  onTap: () => onCauseToggled(cause.id),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'Additional info',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.outline,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.8,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: noteController,
+                              maxLines: null,
+                              expands: true,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Coffee, too little sleep, stress, aura, medication...',
+                                filled: true,
+                                fillColor:
+                                    theme.colorScheme.surfaceContainerLow,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Possible cause',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.outline,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.8,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final cause in _causeOptions)
-                          _CauseChip(
-                            option: cause,
-                            selected: selectedCauses.contains(cause.id),
-                            onTap: () => onCauseToggled(cause.id),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Additional info',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.outline,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.8,
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: selectedIntensity == null
+                                  ? null
+                                  : onSave,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: theme.colorScheme.onSurface,
+                                foregroundColor: theme.colorScheme.surface,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 22,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(26),
+                                ),
+                              ),
+                              child: const Text(
+                                'SAVE',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.6,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      flex: 3,
-                      child: TextField(
-                        controller: noteController,
-                        maxLines: null,
-                        expands: true,
-                        decoration: InputDecoration(
-                          hintText:
-                              'Coffee, too little sleep, stress, aura, medication...',
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerLow,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: selectedIntensity == null ? null : onSave,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: theme.colorScheme.onSurface,
-                          foregroundColor: theme.colorScheme.surface,
-                          padding: const EdgeInsets.symmetric(vertical: 22),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(26),
-                          ),
-                        ),
-                        child: const Text(
-                          'SAVE',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.6,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-          ],
-        ),
+            ),
+          );
+        },
       ),
     );
   }
