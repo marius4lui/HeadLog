@@ -1040,20 +1040,20 @@ class _ComposerSheet extends StatelessWidget {
                     onTap: expanded ? null : onExpand,
                     child: SizedBox(
                       width: double.infinity,
-                      height: expanded ? 68 : 70,
+                      height: expanded ? 82 : 84,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           const SizedBox(height: 6),
                           Container(
-                            width: expanded ? 64 : 56,
-                            height: expanded ? 7 : 6,
+                            width: expanded ? 84 : 74,
+                            height: expanded ? 9 : 8,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.outlineVariant,
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Text(
                             'New Log',
                             style:
