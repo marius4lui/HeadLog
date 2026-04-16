@@ -1,0 +1,76 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run analyzer
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Collect recent commits
+        id: changelog
+        shell: bash
+        run: |
+          PREVIOUS_TAG="$(git tag --sort=-creatordate | grep '^v' | grep -vx "${GITHUB_REF_NAME}" | head -n 1 || true)"
+          {
+            echo "body<<EOF"
+            echo "## HeadLog ${GITHUB_REF_NAME}"
+            echo
+            echo "Android release built automatically from GitHub Actions."
+            echo
+            if [ -n "${PREVIOUS_TAG}" ]; then
+              echo "### Changes since ${PREVIOUS_TAG}"
+              git log "${PREVIOUS_TAG}..HEAD" --pretty=format:'- %s (%h)'
+            else
+              echo "### Included commits"
+              git log --pretty=format:'- %s (%h)'
+            fi
+            echo
+            echo
+            echo "### Assets"
+            echo "- Android APK attached below"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: HeadLog ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.body }}
+          generate_release_notes: true
+          files: build/app/outputs/flutter-apk/app-release.apk

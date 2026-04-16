@@ -903,6 +903,7 @@ class _QuickIntensityRow extends StatelessWidget {
       _IntensityOption(label: 'Light', value: 3, color: Color(0xFF10B981)),
       _IntensityOption(label: 'Medium', value: 5, color: Color(0xFFF59E0B)),
       _IntensityOption(label: 'Strong', value: 8, color: Color(0xFFF97316)),
+      _IntensityOption(label: 'Extreme', value: 10, color: Color(0xFFE11D48)),
     ];
     final theme = Theme.of(context);
 
@@ -917,8 +918,8 @@ class _QuickIntensityRow extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 10,
+                    vertical: 10,
+                    horizontal: 6,
                   ),
                   decoration: BoxDecoration(
                     color: selectedValue == options[i].value
@@ -929,20 +930,23 @@ class _QuickIntensityRow extends StatelessWidget {
                   child: Column(
                     children: [
                       Container(
-                        width: 10,
-                        height: 10,
+                        width: 8,
+                        height: 8,
                         decoration: BoxDecoration(
                           color: options[i].color,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       Text(
                         options[i].label,
-                        style: theme.textTheme.labelLarge?.copyWith(
+                        style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -1015,7 +1019,57 @@ class _ComposerSheet extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final contentVisible = expanded && constraints.maxHeight > 220;
+          if (!expanded) {
+            return ClipRect(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(24, 4, 24, 4 + bottomInset),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragUpdate: (details) {
+                    if (details.delta.dy < -8) {
+                      onExpand();
+                    }
+                  },
+                  onTap: onExpand,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 74,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'New Log',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        selectedIntensity == null
+                            ? 'Swipe up for details'
+                            : 'Intensity $selectedIntensity/10 selected',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final contentVisible = constraints.maxHeight > 430;
 
           return ClipRect(
             child: Padding(
@@ -1040,11 +1094,11 @@ class _ComposerSheet extends StatelessWidget {
                     onTap: expanded ? null : onExpand,
                     child: SizedBox(
                       width: double.infinity,
-                      height: expanded ? 82 : 84,
+                      height: expanded ? 82 : 68,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Container(
                             width: expanded ? 84 : 74,
                             height: expanded ? 9 : 8,
@@ -1062,20 +1116,6 @@ class _ComposerSheet extends StatelessWidget {
                                         : theme.textTheme.titleMedium)
                                     ?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                          if (!expanded) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              selectedIntensity == null
-                                  ? 'Swipe up for details'
-                                  : 'Intensity $selectedIntensity/10 selected',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.outline,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
                         ],
                       ),
                     ),
