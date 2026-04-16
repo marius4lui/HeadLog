@@ -63,9 +63,17 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
         ),
         data: (state) {
           final selectedEntries = _entriesForDay(state.entries, _selectedDate);
-          final composerHeight = (MediaQuery.sizeOf(context).height * 0.7)
-              .clamp(430.0, 640.0);
+          final screenHeight = MediaQuery.sizeOf(context).height;
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
+          final composerHeight = (screenHeight * 0.7).clamp(430.0, 640.0);
           final collapsedHeight = 96.0;
+          final activeSheetHeight = _sheetExpanded
+              ? composerHeight
+              : collapsedHeight;
+          final sheetSpacing = (screenHeight * (_sheetExpanded ? 0.08 : 0.045))
+              .clamp(28.0, 56.0);
+          final contentBottomPadding =
+              activeSheetHeight + bottomInset + sheetSpacing;
 
           return Stack(
             children: [
@@ -92,8 +100,7 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
                         24,
                         16,
                         24,
-                        (_sheetExpanded ? composerHeight : collapsedHeight) +
-                            24,
+                        contentBottomPadding,
                       ),
                       sliver: SliverList.list(
                         children: [
@@ -126,7 +133,7 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
                                 .read(headacheLogViewModelProvider.notifier)
                                 .selectIntensity(value),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 18),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -172,54 +179,58 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
               ),
               Align(
                 alignment: Alignment.bottomCenter,
-                child: SafeArea(
-                  top: false,
-                  child: _ComposerSheet(
-                    expanded: _sheetExpanded,
-                    selectedIntensity: _composerIntensity,
-                    selectedCauses: _composerCauses,
-                    noteController: _composerNoteController,
-                    height: composerHeight,
-                    collapsedHeight: collapsedHeight,
-                    onExpand: () => setState(() => _sheetExpanded = true),
-                    onCollapse: () => setState(() => _sheetExpanded = false),
-                    onIntensitySelected: (value) {
-                      setState(() => _composerIntensity = value);
-                    },
-                    onCauseToggled: (value) {
-                      setState(() {
-                        if (_composerCauses.contains(value)) {
-                          _composerCauses.remove(value);
-                        } else {
-                          _composerCauses.add(value);
-                        }
-                      });
-                    },
-                    onSave: () async {
-                      final intensity = _composerIntensity;
-                      if (intensity == null) {
-                        return;
+                child: _ComposerSheet(
+                  expanded: _sheetExpanded,
+                  selectedIntensity: _composerIntensity,
+                  selectedCauses: _composerCauses,
+                  noteController: _composerNoteController,
+                  height: composerHeight + bottomInset,
+                  collapsedHeight: collapsedHeight + bottomInset,
+                  bottomInset: bottomInset,
+                  onExpand: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _sheetExpanded = true);
+                  },
+                  onCollapse: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _sheetExpanded = false);
+                  },
+                  onIntensitySelected: (value) {
+                    setState(() => _composerIntensity = value);
+                  },
+                  onCauseToggled: (value) {
+                    setState(() {
+                      if (_composerCauses.contains(value)) {
+                        _composerCauses.remove(value);
+                      } else {
+                        _composerCauses.add(value);
                       }
+                    });
+                  },
+                  onSave: () async {
+                    final intensity = _composerIntensity;
+                    if (intensity == null) {
+                      return;
+                    }
 
-                      HapticFeedback.mediumImpact();
-                      await ref
-                          .read(headacheLogViewModelProvider.notifier)
-                          .createEntry(
-                            intensity: intensity,
-                            causes: _composerCauses.toList(growable: false),
-                            note: _composerNoteController.text,
-                          );
+                    HapticFeedback.mediumImpact();
+                    await ref
+                        .read(headacheLogViewModelProvider.notifier)
+                        .createEntry(
+                          intensity: intensity,
+                          causes: _composerCauses.toList(growable: false),
+                          note: _composerNoteController.text,
+                        );
 
-                      if (!mounted) {
-                        return;
-                      }
+                    if (!mounted) {
+                      return;
+                    }
 
-                      setState(() {
-                        _selectedDate = DateTime.now();
-                      });
-                      _resetComposer();
-                    },
-                  ),
+                    setState(() {
+                      _selectedDate = DateTime.now();
+                    });
+                    _resetComposer();
+                  },
                 ),
               ),
             ],
@@ -252,6 +263,7 @@ class _HeadLogHomeScreenState extends ConsumerState<HeadLogHomeScreen> {
     final next = ref.read(themeModeProvider) == ThemeMode.dark
         ? ThemeMode.light
         : ThemeMode.dark;
+    HapticFeedback.selectionClick();
     ref.read(themeModeProvider.notifier).state = next;
   }
 
@@ -344,6 +356,13 @@ class _CalendarCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final monthEntries = entries
+        .where(
+          (entry) =>
+              entry.timestamp.year == selectedDate.year &&
+              entry.timestamp.month == selectedDate.month,
+        )
+        .toList(growable: false);
     final avgIntensity = dayEntries.isEmpty
         ? 0.0
         : dayEntries.map((entry) => entry.intensity).reduce((a, b) => a + b) /
@@ -362,10 +381,27 @@ class _CalendarCard extends StatelessWidget {
         children: [
           _SegmentedControl(active: currentView, onChange: onViewChanged),
           const SizedBox(height: 28),
-          _WeekStrip(
-            selectedDate: selectedDate,
-            entries: entries,
-            onSelect: onDateSelected,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: switch (currentView) {
+              'month' => _MonthGrid(
+                key: const ValueKey('month-view'),
+                selectedDate: selectedDate,
+                entries: monthEntries,
+                onSelect: onDateSelected,
+              ),
+              'day' => _DayFocus(
+                key: const ValueKey('day-view'),
+                selectedDate: selectedDate,
+                entries: dayEntries,
+              ),
+              _ => _WeekStrip(
+                key: const ValueKey('week-view'),
+                selectedDate: selectedDate,
+                entries: entries,
+                onSelect: onDateSelected,
+              ),
+            },
           ),
           const SizedBox(height: 20),
           _DayMiniCard(
@@ -401,7 +437,10 @@ class _SegmentedControl extends StatelessWidget {
           for (final option in options)
             Expanded(
               child: GestureDetector(
-                onTap: () => onChange(option),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onChange(option);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -431,6 +470,7 @@ class _SegmentedControl extends StatelessWidget {
 
 class _WeekStrip extends StatelessWidget {
   const _WeekStrip({
+    super.key,
     required this.selectedDate,
     required this.entries,
     required this.onSelect,
@@ -483,7 +523,10 @@ class _WeekDayPill extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: AnimatedScale(
         duration: const Duration(milliseconds: 180),
         scale: isSelected ? 1.06 : 1,
@@ -533,6 +576,178 @@ class _WeekDayPill extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MonthGrid extends StatelessWidget {
+  const _MonthGrid({
+    super.key,
+    required this.selectedDate,
+    required this.entries,
+    required this.onSelect,
+  });
+
+  final DateTime selectedDate;
+  final List<HeadacheEntry> entries;
+  final ValueChanged<DateTime> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final monthStart = DateTime(selectedDate.year, selectedDate.month, 1);
+    final firstWeekdayOffset = (monthStart.weekday + 6) % 7;
+    final gridStart = monthStart.subtract(Duration(days: firstWeekdayOffset));
+    final days = List<DateTime>.generate(
+      35,
+      (index) =>
+          DateTime(gridStart.year, gridStart.month, gridStart.day + index),
+    );
+    const weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+    return Column(
+      key: const ValueKey('month-grid'),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (final label in weekdayLabels)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.outline,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 6,
+            childAspectRatio: 0.9,
+          ),
+          itemCount: days.length,
+          itemBuilder: (context, index) {
+            final day = days[index];
+            final isSelected = DateUtils.isSameDay(day, selectedDate);
+            final isCurrentMonth = day.month == selectedDate.month;
+            final hasEntry = entries.any(
+              (entry) => DateUtils.isSameDay(entry.timestamp, day),
+            );
+
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSelect(day);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? colorScheme.onSurface
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${day.day}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: isSelected
+                            ? colorScheme.surface
+                            : isCurrentMonth
+                            ? colorScheme.onSurface
+                            : colorScheme.outlineVariant,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: hasEntry
+                            ? (isSelected
+                                  ? colorScheme.surface
+                                  : colorScheme.primary)
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _DayFocus extends StatelessWidget {
+  const _DayFocus({
+    super.key,
+    required this.selectedDate,
+    required this.entries,
+  });
+
+  final DateTime selectedDate;
+  final List<HeadacheEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final topEntry = entries.isEmpty ? null : entries.first;
+
+    return Container(
+      key: const ValueKey('day-focus'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            DateFormat('EEEE, d MMMM').format(selectedDate),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            entries.isEmpty
+                ? 'No entries logged for this day.'
+                : '${entries.length} entries on this day',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (topEntry != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Latest intensity ${topEntry.intensity}/10',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -748,6 +963,7 @@ class _ComposerSheet extends StatelessWidget {
     required this.noteController,
     required this.height,
     required this.collapsedHeight,
+    required this.bottomInset,
     required this.onExpand,
     required this.onCollapse,
     required this.onIntensitySelected,
@@ -761,6 +977,7 @@ class _ComposerSheet extends StatelessWidget {
   final TextEditingController noteController;
   final double height;
   final double collapsedHeight;
+  final double bottomInset;
   final VoidCallback onExpand;
   final VoidCallback onCollapse;
   final ValueChanged<int> onIntensitySelected;
@@ -781,7 +998,7 @@ class _ComposerSheet extends StatelessWidget {
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
       height: expanded ? height : collapsedHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
@@ -797,7 +1014,12 @@ class _ComposerSheet extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 8, 24, expanded ? 20 : 12),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          4,
+          24,
+          (expanded ? 20 : 8) + bottomInset,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -811,12 +1033,13 @@ class _ComposerSheet extends StatelessWidget {
                 }
               },
               onTap: expanded ? null : onExpand,
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: expanded ? 18 : 8),
-                alignment: Alignment.center,
+                height: expanded ? 92 : 74,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    SizedBox(height: expanded ? 8 : 6),
                     Container(
                       width: expanded ? 64 : 56,
                       height: expanded ? 7 : 6,
@@ -825,7 +1048,7 @@ class _ComposerSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    SizedBox(height: expanded ? 14 : 8),
+                    SizedBox(height: expanded ? 10 : 6),
                     Text(
                       'New Log',
                       style:
@@ -834,11 +1057,25 @@ class _ComposerSheet extends StatelessWidget {
                                   : theme.textTheme.titleMedium)
                               ?.copyWith(fontWeight: FontWeight.w700),
                     ),
+                    if (!expanded) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        selectedIntensity == null
+                            ? 'Swipe up for details'
+                            : 'Intensity $selectedIntensity/10 selected',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-            SizedBox(height: expanded ? 8 : 4),
+            if (expanded) const SizedBox(height: 8),
             if (expanded)
               Expanded(
                 child: Column(
@@ -981,57 +1218,6 @@ class _ComposerSheet extends StatelessWidget {
                   ],
                 ),
               ),
-            if (!expanded)
-              Expanded(
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            Icons.add_rounded,
-                            size: 22,
-                            color: theme.colorScheme.surface,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            selectedIntensity == null
-                                ? 'Add detailed entry'
-                                : 'Intensity $selectedIntensity/10 selected',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.keyboard_arrow_up_rounded,
-                          color: theme.colorScheme.outline,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -1050,6 +1236,7 @@ class _EntryDetailsSheet extends StatefulWidget {
 
 class _EntryDetailsSheetState extends State<_EntryDetailsSheet> {
   late int _intensity = widget.entry.intensity;
+  late int _lastHapticIntensity = widget.entry.intensity;
   late final Set<String> _causes = widget.entry.causes.toSet();
   late final TextEditingController _noteController = TextEditingController(
     text: widget.entry.note ?? '',
@@ -1118,7 +1305,12 @@ class _EntryDetailsSheetState extends State<_EntryDetailsSheet> {
               divisions: 9,
               label: '$_intensity',
               onChanged: (value) {
-                setState(() => _intensity = value.round());
+                final next = value.round();
+                if (next != _lastHapticIntensity) {
+                  HapticFeedback.selectionClick();
+                  _lastHapticIntensity = next;
+                }
+                setState(() => _intensity = next);
               },
             ),
             Text(
