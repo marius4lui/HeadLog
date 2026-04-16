@@ -76,6 +76,14 @@ class HeadacheLogViewModel extends AsyncNotifier<HeadacheLogState> {
   }
 
   Future<void> logEntryWithIntensity(int intensity) async {
+    await createEntry(intensity: intensity);
+  }
+
+  Future<void> createEntry({
+    required int intensity,
+    List<String> causes = const <String>[],
+    String? note,
+  }) async {
     final current = state.valueOrNull;
     if (current == null) {
       return;
@@ -85,6 +93,8 @@ class HeadacheLogViewModel extends AsyncNotifier<HeadacheLogState> {
       id: _uuid.v4(),
       timestamp: DateTime.now(),
       intensity: intensity,
+      causes: causes,
+      note: note?.trim().isEmpty ?? true ? null : note?.trim(),
     );
 
     state = AsyncData(
@@ -96,6 +106,36 @@ class HeadacheLogViewModel extends AsyncNotifier<HeadacheLogState> {
     );
 
     unawaited(_persistEntry(entry));
+  }
+
+  Future<void> updateEntry(HeadacheEntry updatedEntry) async {
+    final current = state.valueOrNull;
+    if (current == null) {
+      return;
+    }
+
+    final previousEntry = current.entries.cast<HeadacheEntry?>().firstWhere(
+      (item) => item?.id == updatedEntry.id,
+      orElse: () => null,
+    );
+    if (previousEntry == null) {
+      return;
+    }
+
+    final updatedEntries =
+        current.entries
+            .map((entry) => entry.id == updatedEntry.id ? updatedEntry : entry)
+            .toList()
+          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    state = AsyncData(current.copyWith(entries: updatedEntries));
+
+    try {
+      await _database.insertEntry(updatedEntry);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(current);
+    }
   }
 
   Future<void> deleteEntry(String id) async {

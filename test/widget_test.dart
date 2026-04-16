@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:headlog/app.dart';
@@ -25,6 +27,10 @@ class _FakeHeadacheDatabase extends HeadacheDatabase {
 
 void main() {
   testWidgets('HeadLog home screen renders core UI', (tester) async {
+    tester.view.physicalSize = const Size(430, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -38,6 +44,6 @@ void main() {
 
     expect(find.text('Overview'), findsOneWidget);
     expect(find.text('Instant Log'), findsOneWidget);
-    expect(find.text('Entries'), findsOneWidget);
+    expect(find.text('New Log'), findsOneWidget);
   });
 }

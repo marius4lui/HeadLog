@@ -12,7 +12,7 @@ final headacheDatabaseProvider = Provider<HeadacheDatabase>((ref) {
 
 class HeadacheDatabase {
   static const _databaseName = 'headlog.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   static const _entriesTable = 'headache_entries';
 
   Database? _database;
@@ -34,6 +34,7 @@ class HeadacheDatabase {
             id TEXT PRIMARY KEY,
             timestamp TEXT NOT NULL,
             intensity INTEGER NOT NULL,
+            causes TEXT,
             note TEXT
           )
         ''');
@@ -41,6 +42,11 @@ class HeadacheDatabase {
           'CREATE INDEX idx_headache_entries_timestamp '
           'ON $_entriesTable(timestamp DESC)',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE $_entriesTable ADD COLUMN causes TEXT');
+        }
       },
     );
   }
