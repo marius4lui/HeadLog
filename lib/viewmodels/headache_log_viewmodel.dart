@@ -72,10 +72,19 @@ class HeadacheLogViewModel extends AsyncNotifier<HeadacheLogState> {
       return;
     }
 
+    await logEntryWithIntensity(current.selectedIntensity);
+  }
+
+  Future<void> logEntryWithIntensity(int intensity) async {
+    final current = state.valueOrNull;
+    if (current == null) {
+      return;
+    }
+
     final entry = HeadacheEntry(
       id: _uuid.v4(),
       timestamp: DateTime.now(),
-      intensity: current.selectedIntensity,
+      intensity: intensity,
     );
 
     state = AsyncData(

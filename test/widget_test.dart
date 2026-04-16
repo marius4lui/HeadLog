@@ -36,8 +36,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('HeadLog'), findsOneWidget);
-    expect(find.text('Log Pain'), findsOneWidget);
-    expect(find.text('Recent Entries'), findsOneWidget);
+    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('Instant Log'), findsOneWidget);
+    expect(find.text('Entries'), findsOneWidget);
   });
 }
