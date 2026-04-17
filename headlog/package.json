@@ -1,0 +1,14 @@
+{
+  "name": "headlog",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "check": "wrangler check",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.83.0"
+  }
+}

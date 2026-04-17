@@ -1,0 +1,29 @@
+{
+  "name": "headlog",
+  "main": "src/worker.js",
+  "workers_dev": true,
+  "preview_urls": false,
+  "compatibility_date": "2026-04-16",
+  "vars": {
+    "GITHUB_OWNER": "marius4lui",
+    "GITHUB_REPO": "HeadLog",
+    "APK_ASSET_NAME": "app-release.apk",
+    "DEFAULT_TAG": "v1.1-stable",
+    "STABLE_TAG": "v1.1-stable"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  }
+}

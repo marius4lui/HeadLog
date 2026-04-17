@@ -71,6 +71,17 @@ flutter pub get
 flutter run
 ```
 
+### Android Quick Start
+
+Install the default stable Android APK directly from the HeadLog download Worker:
+
+- Stable download URL: [https://headlog.marius4lui.workers.dev/download](https://headlog.marius4lui.workers.dev/download)
+- Explicit latest URL: [https://headlog.marius4lui.workers.dev/download/latest](https://headlog.marius4lui.workers.dev/download/latest)
+- Current latest Worker response on April 17, 2026: `200 OK`
+- Current latest release tag served by the Worker: `v1.1`
+
+If Android blocks the install, allow app installs from the browser or file manager you used for the download and open the APK again.
+
 ### Tests and checks
 
 ```bash
@@ -125,7 +136,7 @@ That is useful when:
 
 - the GitHub repo is private
 - you still want a public or controlled download URL
-- you want a stable endpoint like `/download/latest` or `/download/v1.1`
+- you want a stable endpoint like `/download` plus an explicit latest endpoint like `/download/latest`
 
 More details:
 
@@ -143,8 +154,14 @@ The Worker under `headlog/` can:
 Configured endpoints include:
 
 - `/download`
+- `/download/stable`
 - `/download/latest`
 - `/download/v1.1`
+- `/download/v1.1-stable`
+
+Live Worker base URL:
+
+- [https://headlog.marius4lui.workers.dev](https://headlog.marius4lui.workers.dev)
 
 The Worker expects:
 
@@ -152,7 +169,24 @@ The Worker expects:
 - `GITHUB_REPO`
 - `APK_ASSET_NAME`
 - `DEFAULT_TAG`
+- `STABLE_TAG`
 - `GITHUB_TOKEN` as a Wrangler secret
+
+## Stable Release Channel
+
+The Worker can serve a pinned stable APK by default instead of always serving the newest GitHub release.
+
+- `/download` uses the configured stable tag
+- `/download/stable` also resolves to the configured stable tag
+- `/download/latest` always resolves to the newest GitHub release
+
+Suggested flow:
+
+1. publish normal version releases such as `v1.2`
+2. choose which release should be the stable channel
+3. create or update a separate stable release tag such as `v1.2-stable`
+4. set `STABLE_TAG` and `DEFAULT_TAG` in `headlog/wrangler.jsonc` to that stable tag
+5. deploy the Worker
 
 ## Privacy
 
@@ -179,7 +213,8 @@ The codebase is intentionally set up to support future additions such as:
 - iOS project is included
 - the Cloudflare Worker lives in `/headlog`
 - local secrets for the Worker should never be committed
+- keep `.dev.vars`, `.wrangler/`, `node_modules/`, and generated logs/build output out of version control
 
 ## License
 
-No license file is currently included. Add one before public open-source distribution if you want to define reuse terms explicitly.
+This project is licensed under the [MIT License](./LICENSE).

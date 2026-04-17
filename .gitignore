@@ -43,4 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-/headlog
+
+# Local Android and native build artifacts
+/android/.gradle/
+/android/.kotlin/
+
+# Worker project: keep source tracked, keep local state and secrets out of git.
+/headlog/node_modules/
+/headlog/.wrangler/
+/headlog/.dev.vars
+/headlog/.env
+/headlog/.env.*
